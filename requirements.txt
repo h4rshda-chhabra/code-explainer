@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+faiss-cpu
+sentence-transformers
+openai
+python-multipart
+pydantic
+pydantic-settings
+numpy
