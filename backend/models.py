@@ -4,6 +4,9 @@ from typing import List, Optional
 class UploadRequest(BaseModel):
     files: List[str]  # List of file paths or directory
 
+class GithubUploadRequest(BaseModel):
+    github_url: str
+
 class UploadResponse(BaseModel):
     message: str
     files_indexed: int

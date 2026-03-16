@@ -3,7 +3,10 @@ uvicorn
 faiss-cpu
 sentence-transformers
 openai
+google-genai
 python-multipart
 pydantic
 pydantic-settings
 numpy
+gitpython
+langchain-text-splitters

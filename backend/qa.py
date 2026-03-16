@@ -7,23 +7,24 @@ class LLMProvider(ABC):
     def generate_answer(self, prompt: str) -> str:
         pass
 
-class OpenAIProvider(LLMProvider):
-    def __init__(self, api_key: str = None, model: str = "gpt-3.5-turbo"):
-        import openai
-        self.client = openai.OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
+
+
+class GeminiProvider(LLMProvider):
+    def __init__(self, api_key: str = None, model: str = "gemini-2.5-flash"):
+        from google import genai
+        self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
         self.model = model
 
     def generate_answer(self, prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0
-        )
-        return response.choices[0].message.content
-
-class MockProvider(LLMProvider):
-    def generate_answer(self, prompt: str) -> str:
-        return "I am a mock response. Please provide an OpenAI API key for real answers."
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+            )
+            return response.text
+        except Exception as e:
+            print(f"Gemini API Error: {e}")
+            return f"Error: Failed to generate response from Gemini. {str(e)}"
 
 class QAEngine:
     def __init__(self, llm_provider: LLMProvider):
@@ -31,9 +32,10 @@ class QAEngine:
 
     def construct_prompt(self, question: str, context_chunks: List[str]) -> str:
         context_text = "\n\n---\n\n".join(context_chunks)
-        prompt = f"""You are a DevOps assistant.
-Answer the question only using the context provided below.
-If the answer is not present in the context, say 'Not enough information in the codebase.'
+        prompt = f"""You are an advanced AI Codebase Explainer and Software Engineering Assistant.
+Use the codebase context provided below to answer the user's question accurately.
+If the context doesn't contain the exact answer but gives enough structural clues, synthesize a helpful explanation based on standard software engineering principles.
+If it is completely unrelated to the provided context, state that there is 'Not enough information in the indexed codebase.'
 
 Context:
 {context_text}
