@@ -37,13 +37,20 @@ class VectorStoreManager:
         if not chunks:
             return
         self.repo_name = repo_name
-        texts = [c["text"] for c in chunks]
-        embeddings = self.model.encode(texts)
-        # Convert to float32 for FAISS
-        embeddings = np.array(embeddings).astype('float32')
         
-        self.index.add(embeddings)
-        self.chunks.extend(chunks)
+        # Batch processing embeddings to prevent OOM errors (Ingestion Server errors)
+        batch_size = 64
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i:i+batch_size]
+            texts = [c["text"] for c in batch]
+            
+            embeddings = self.model.encode(texts)
+            # Convert to float32 for FAISS
+            embeddings = np.array(embeddings).astype('float32')
+            
+            self.index.add(embeddings)
+            self.chunks.extend(batch)
+            
         self.save()
 
     def search(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:

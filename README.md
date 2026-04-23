@@ -23,7 +23,7 @@ An AI-powered tool that explains source code and DevOps configuration files usin
 
 ### Prerequisites
 - Python 3.9+
-- OpenAI API Key (optional, falls back to Mock if not provided)
+- Gemini API Key (get from Google AI Studio)
 
 ### Installation
 1. Clone the repository and navigate to the root directory.
@@ -33,9 +33,9 @@ An AI-powered tool that explains source code and DevOps configuration files usin
    ```
 
 ### Running the Project
-1. Set your OpenAI API key (optional):
+1. Set your Gemini API key:
    ```bash
-   $env:OPENAI_API_KEY="your_key_here"  # Windows PowerShell
+   $env:GEMINI_API_KEY="your_key_here"  # Windows PowerShell
    ```
 2. Start the FastAPI server:
    ```bash

@@ -1,24 +1,28 @@
-from typing import List, Dict
-
+import os
+from typing import List, Dict, Any
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from .utils import get_allowed_files
 class FileProcessor:
     def __init__(self, chunk_size: int = 1200, chunk_overlap: int = 200):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
-    def process_file(self, file_path: str) -> List[Dict[str, str]]:
+    def process_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Reads a file and splits it into chunks with metadata."""
-        try:
-            from langchain_text_splitters import RecursiveCharacterTextSplitter
-        except ImportError:
-            # Fallback if the user hasn't pip installed it yet
-            print("Warning: langchain-text-splitters not found. Falling back to simple chunker.")
-            return self._legacy_process_file(file_path)
-
         chunks = []
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            # Try utf-8 first
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                # Fallback to latin-1 for legacy or binary-ish files
+                with open(file_path, 'r', encoding='latin-1') as f:
+                    content = f.read()
             
+            if not content.strip():
+                return []
+
             # Use LangChain semantic text splitter
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=self.chunk_size,
@@ -49,31 +53,19 @@ class FileProcessor:
             
         return chunks
 
-    def _legacy_process_file(self, file_path: str) -> List[Dict[str, str]]:
-        """Legacy naive chunking system for fallback."""
-        chunks = []
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            for i in range(0, len(content), self.chunk_size - self.chunk_overlap):
-                chunk_text = content[i : i + self.chunk_size]
-                chunks.append({
-                    "text": chunk_text,
-                    "metadata": {
-                        "source": file_path,
-                        "start_char": i
-                    }
-                })
-        except Exception as e:
-            print(f"Error processing {file_path}: {e}")
-        return chunks
-
-    def process_directory(self, directory_path: str) -> List[Dict[str, str]]:
+    def process_directory(self, directory_path: str) -> List[Dict[str, Any]]:
         from .utils import get_allowed_files
         all_chunks = []
-        files = get_allowed_files(directory_path)
+        files = list(set(get_allowed_files(directory_path)))
         
-        for file in files:
-            all_chunks.extend(self.process_file(file))
+        print(f"Index engine starting: found {len(files)} potential code/config files.")
+        
+        for i, file in enumerate(files):
+            new_chunks = self.process_file(file)
+            if new_chunks:
+                print(f"[{i+1}/{len(files)}] Indexed {os.path.basename(file)}")
+                all_chunks.extend(new_chunks)
+            else:
+                print(f"[{i+1}/{len(files)}] Skipped/Empty {os.path.basename(file)}")
             
         return all_chunks

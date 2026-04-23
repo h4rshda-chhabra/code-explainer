@@ -3,15 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from .models import UploadRequest, UploadResponse, QueryRequest, QueryResponse, GithubUploadRequest
 from .ingest import FileProcessor
 from .vector_store import VectorStoreManager
-from .qa import QAEngine, GeminiProvider
+from .qa import QAEngine
 from .github_ingest import GitHubIngestor
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="AI-Powered DevOps Codebase Explainer")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In a production environment, change this to ["http://localhost:5173"] or your actual frontend domain
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,26 +26,24 @@ vector_store = VectorStoreManager()
 github_ingestor = GitHubIngestor()
 
 # Use Gemini API Key
-api_key = "AIzaSyATloysJHz3kiUfwov6uR7ssUCm3SBjgb0"
-llm_provider = GeminiProvider(api_key=api_key)
-
-qa_engine = QAEngine(llm_provider)
+api_key = os.getenv("GEMINI_API_KEY")
+qa_engine = QAEngine(api_key=api_key)
 
 @app.post("/upload", response_model=UploadResponse)
-async def upload_files(request: UploadRequest):
+def upload_files(request: UploadRequest):
     try:
         all_chunks = []
         for path in request.files:
             if os.path.isdir(path):
-                chunks = file_processor.process_directory(path)
+                chunks = file_processor.process_directory(path) #for folders
             else:
-                chunks = file_processor.process_file(path)
+                chunks = file_processor.process_file(path) #for files
             all_chunks.extend(chunks)
         
         if not all_chunks:
             raise HTTPException(status_code=400, detail="No valid DevOps/Code files found in the provided paths.")
             
-        vector_store.clear()
+        vector_store.clear() #clear old data
         repo_name = os.path.basename(os.path.normpath(request.files[0])) if len(request.files) == 1 else "Multiple Local Folders"
         vector_store.add_chunks(all_chunks, repo_name=repo_name)
         
@@ -54,7 +55,7 @@ async def upload_files(request: UploadRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/upload-github", response_model=UploadResponse)
-async def upload_github(request: GithubUploadRequest):
+def upload_github(request: GithubUploadRequest):
     try:
         repo_url = request.github_url
         if not repo_url.startswith("http"):
@@ -86,7 +87,7 @@ async def upload_github(request: GithubUploadRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/ask", response_model=QueryResponse)
-async def ask_question(request: QueryRequest):
+def ask_question(request: QueryRequest):
     try:
         # Force top_k to 8 to guarantee maximum AI context on complex ML pipelines
         results = vector_store.search(request.question, top_k=8)
@@ -101,12 +102,20 @@ async def ask_question(request: QueryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/clear")
+def clear_index():
+    try:
+        vector_store.clear()
+        return {"message": "Successfully unindexed codebase."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "indexed_chunks": len(vector_store.chunks)}
 
 @app.get("/index-status")
-async def get_index_status():
+def get_index_status():
     try:
         if not vector_store.chunks:
             return {"repo_name": "None", "files": []}
@@ -123,7 +132,7 @@ async def get_index_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/browse")
-async def browse_local():
+def browse_local():
     try:
         import tkinter as tk
         from tkinter import filedialog

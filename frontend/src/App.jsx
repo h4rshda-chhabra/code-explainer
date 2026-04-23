@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Send, UploadCloud, Folder, FileCode2, Command, Bot, User, CheckCircle2, AlertCircle, Github, HardDrive, Database, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { Send, UploadCloud, Folder, FileCode2, Command, Bot, User, CheckCircle2, AlertCircle, Github, HardDrive, Database, ChevronDown, ChevronRight, FileText, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import './App.css';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function App() {
   const [messages, setMessages] = useState([
@@ -108,6 +109,22 @@ function App() {
     } catch (error) {
        console.log("Folder picker error or cancelled", error);
        alert("Failed to open local folder browser. Make sure the backend server is running.");
+    }
+  };
+
+  const handleUnindex = async () => {
+    if (!window.confirm("Are you sure you want to unindex the current codebase? This guarantees no two codebases will merge.")) return;
+    setUploading(true);
+    setUploadStatus(null);
+    try {
+      await axios.post(`${API_BASE}/clear`);
+      setUploadStatus({ type: 'success', message: 'Successfully unindexed codebase!' });
+      fetchIndexStatus();
+    } catch (err) {
+      setUploadStatus({ type: 'error', message: 'Failed to unindex codebase.' });
+    } finally {
+      setUploading(false);
+      setTimeout(() => setUploadStatus(null), 5000);
     }
   };
 
@@ -239,16 +256,31 @@ function App() {
             <div className="indexed-content">
               {indexedData.repo_name !== 'None' ? (
                 <>
-                  <div className="repo-badge">{indexedData.repo_name}</div>
+                  <div className="repo-badge-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div className="repo-badge" title={indexedData.repo_name} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px'}}>
+                      {indexedData.repo_name}
+                    </div>
+                    <button onClick={handleUnindex} disabled={uploading} title="Remove to prevent merging codebases" style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Trash2 size={12} /> Unindex
+                    </button>
+                  </div>
                   <div className="file-tree">
                     {indexedData.files.map((file, idx) => {
-                      // Extract just the filename from absolute path to save space
+                      // Display the full project structure relative to repo to show internal folders and files
                       const segments = file.split(/[/\\]/);
-                      const filename = segments[segments.length - 1];
+                      const repoIndex = segments.findIndex(s => s === indexedData.repo_name);
+                      let displayPath = file;
+                      if (repoIndex !== -1 && repoIndex < segments.length - 1) {
+                         displayPath = segments.slice(repoIndex + 1).join('/');
+                      } else if (segments.length > 2) {
+                         displayPath = segments.slice(-3).join('/');
+                      }
                       return (
                         <div key={idx} className="tree-item" title={file}>
-                          <FileText size={13} className="file-icon" />
-                          <span className="file-name">{filename}</span>
+                          <FileText size={13} className="file-icon" style={{ minWidth: '13px' }} />
+                          <span className="file-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'rtl', textAlign: 'left' }}>
+                            &lrm;{displayPath}
+                          </span>
                         </div>
                       );
                     })}
@@ -287,7 +319,9 @@ function App() {
                 {msg.role === 'assistant' ? <Bot size={20} /> : <User size={20} />}
               </div>
               <div className={`message-bubble ${msg.isError ? 'error' : ''}`}>
-                <div className="message-content">{msg.content}</div>
+                <div className="message-content">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
                 {msg.context > 0 && (
                   <div className="message-meta">
                     Retrieved {msg.context} code chunks as context.

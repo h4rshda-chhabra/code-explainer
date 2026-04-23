@@ -10,3 +10,4 @@ pydantic-settings
 numpy
 gitpython
 langchain-text-splitters
+python-dotenv

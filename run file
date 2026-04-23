@@ -1,0 +1,23 @@
+Both the backend and frontend are already running for you in the background! You can access the project through your browser right now:
+
+Frontend: http://localhost:5173/
+Backend API: http://localhost:8000/docs (Interactive Swagger UI)
+If you need to run it again later:
+Since this is a full-stack project, you will always need two terminal windows open at the same time:
+
+Terminal 1 (Backend)
+
+powershell
+# From the root directory (etech/)
+uvicorn backend.main:app --port 8000 --reload
+Terminal 2 (Frontend)
+
+powershell
+# From the frontend directory (etech/frontend/)
+cd frontend
+npm run dev
+Steps to use:
+Open http://localhost:5173/.
+Paste the absolute path of any folder you want to index into the "Local" tab (e.g., C:\Users\Harshda\Desktop\99dresses).
+Click Index Local Files.
+Once the "Active Repository" list updates, start chatting with the AI about your code!

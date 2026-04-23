@@ -347,6 +347,39 @@ form textarea:focus {
   line-height: 1.6;
 }
 
+.message-content {
+  overflow-wrap: break-word;
+}
+
+.message-content p {
+  margin-bottom: 0.75rem;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content pre {
+  background: var(--bg-sidebar);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border: 1px solid var(--border);
+}
+
+.message-content code {
+  font-family: monospace;
+  background: rgba(0,0,0,0.2);
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+.message-content ul, .message-content ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
 .user .message-bubble {
   background: var(--bg-sidebar);
   border: 1px solid var(--border);
