@@ -4,11 +4,11 @@ import { Send, UploadCloud, Folder, FileCode2, Command, Bot, User, CheckCircle2,
 import ReactMarkdown from 'react-markdown';
 import './App.css';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '/api';
 
 function App() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi! I am your AI DevOps Codebase Explainer. Upload your project folder or files, and ask me anything about how the code works.', id: 'init' }
+    { role: 'assistant', content: 'Hi! I am your AI Codebase Explainer. Upload your project folder or files, and ask me anything about how the code works.', id: 'init' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,6 +19,7 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState(null); // { type: 'success' | 'error', message: '' }
   const [indexedData, setIndexedData] = useState({ repo_name: 'None', files: [] });
   const [isTreeExpanded, setIsTreeExpanded] = useState(true);
+  const [allowedExtensions, setAllowedExtensions] = useState('');
   
   const messagesEndRef = useRef(null);
 
@@ -54,7 +55,11 @@ function App() {
     const paths = uploadPaths.split(',').map(p => p.trim()).filter(Boolean);
     
     try {
-      const res = await axios.post(`${API_BASE}/upload`, { files: paths });
+      const exts = allowedExtensions.split(',').map(e => e.trim()).filter(Boolean);
+      const res = await axios.post(`${API_BASE}/upload`, { 
+        files: paths,
+        allowed_extensions: exts.length > 0 ? exts : null
+      });
       setUploadStatus({ 
         type: 'success', 
         message: `Indexed ${res.data.files_indexed} local files!` 
@@ -200,6 +205,13 @@ function App() {
                     <Folder size={16} />
                   </button>
                 </div>
+                <input 
+                  type="text"
+                  value={allowedExtensions}
+                  onChange={(e) => setAllowedExtensions(e.target.value)}
+                  placeholder="Extensions: .py, .js (optional)"
+                  style={{ background: '#374151', color: '#f3f4f6', border: '1px solid #4b5563', padding: '8px', borderRadius: '4px', width: '100%', marginTop: '8px', marginBottom: '8px' }}
+                />
                 <button 
                   type="submit" 
                   className={`upload-btn ${uploading ? 'loading' : ''}`}
@@ -307,7 +319,7 @@ function App() {
       <main className="chat-container">
         <header className="chat-header">
           <div className="header-info">
-            <h1>DevOps Assistant</h1>
+            <h1>Codebase Assistant</h1>
             <span className="badge">RAG Powered</span>
           </div>
         </header>
@@ -342,6 +354,20 @@ function App() {
         </div>
 
         <div className="input-area">
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            {['Explain main entry point', 'How does ingestion work?', 'List API endpoints'].map((q, idx) => (
+              <button 
+                key={idx} 
+                onClick={() => setInput(q)} 
+                type="button"
+                style={{ background: '#374151', color: '#f3f4f6', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', transition: 'background-color 0.2s' }}
+                onMouseOver={(e) => e.target.style.background = '#4b5563'}
+                onMouseOut={(e) => e.target.style.background = '#374151'}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
           <form onSubmit={handleSend} className="input-form">
             <input
               type="text"

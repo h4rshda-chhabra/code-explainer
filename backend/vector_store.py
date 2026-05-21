@@ -6,13 +6,16 @@ import os
 from google import genai
 
 class VectorStoreManager:
-    def __init__(self, api_key: str = None, model_name: str = "text-embedding-004", index_path: str = "index.faiss", chunks_path: str = "chunks.json", meta_path: str = "meta.json"):
+    def __init__(self, api_key: str = None, model_name: str = "gemini-embedding-2", index_path: str = "index.faiss", chunks_path: str = "chunks.json", meta_path: str = "meta.json"):
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
         self.model_name = model_name
-        self.dimension = 768 # Gemini text-embedding-004 dimension
-        self.index_path = index_path
-        self.chunks_path = chunks_path
-        self.meta_path = meta_path
+        self.dimension = 3072 # gemini-embedding-2 default dimension
+        
+        temp_dir = "/tmp" if os.getenv("VERCEL") == "1" else "."
+        self.index_path = os.path.join(temp_dir, index_path)
+        self.chunks_path = os.path.join(temp_dir, chunks_path)
+        self.meta_path = os.path.join(temp_dir, meta_path)
+        
         self.repo_name = "None"
         self.load()
 
@@ -71,6 +74,8 @@ class VectorStoreManager:
         self.save()
 
     def search(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        if not self.chunks:
+            return []
         res = self.client.models.embed_content(
             model=self.model_name,
             contents=query
