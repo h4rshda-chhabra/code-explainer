@@ -19,7 +19,6 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState(null); // { type: 'success' | 'error', message: '' }
   const [indexedData, setIndexedData] = useState({ repo_name: 'None', files: [] });
   const [isTreeExpanded, setIsTreeExpanded] = useState(true);
-  const [allowedExtensions, setAllowedExtensions] = useState('');
   
   const messagesEndRef = useRef(null);
 
@@ -58,7 +57,7 @@ function App() {
       const formData = new FormData();
       let fileCount = 0;
       
-      const exts = allowedExtensions.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      const exts = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -225,13 +224,7 @@ function App() {
                     className="file-picker-input"
                   />
                 </div>
-                <input 
-                  type="text"
-                  value={allowedExtensions}
-                  onChange={(e) => setAllowedExtensions(e.target.value)}
-                  placeholder="Extensions: .py, .js (optional)"
-                  style={{ background: '#374151', color: '#f3f4f6', border: '1px solid #4b5563', padding: '8px', borderRadius: '4px', width: '100%', marginBottom: '8px' }}
-                />
+
                 <button 
                   type="submit" 
                   className={`upload-btn ${uploading ? 'loading' : ''}`}
