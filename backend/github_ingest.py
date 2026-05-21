@@ -38,6 +38,12 @@ class GitHubIngestor:
             return temp_dir
         except Exception as e:
             self.cleanup_dir(temp_dir)
+            error_msg = str(e).lower()
+            
+            # Check for common git errors when trying to clone a private or non-existent repo without auth
+            if "not found" in error_msg or "authentication" in error_msg or "could not read" in error_msg or "fatal: repository" in error_msg:
+                raise RuntimeError("Cannot access repository. Please ensure the URL is correct and the repository is public (private repositories are not currently supported).")
+                
             raise RuntimeError(f"Failed to clone repository: {str(e)}")
 
     def cleanup_dir(self, dir_path: str) -> None:
