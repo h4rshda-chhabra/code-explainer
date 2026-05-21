@@ -95,7 +95,11 @@ function App() {
       });
       
       // Reset file input
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+        const el = document.getElementById('file-count-label');
+        if (el) el.innerText = '';
+      }
       
       fetchIndexStatus();
     } catch (err) {
@@ -213,16 +217,33 @@ function App() {
             <div className="tab-pane">
               <p className="upload-desc">Select a project folder to upload and index its code.</p>
               <form onSubmit={handleUploadLocal}>
-                <div style={{ marginBottom: '12px' }}>
-                  <input 
-                    type="file" 
-                    webkitdirectory="true" 
-                    directory="true" 
-                    multiple 
-                    ref={fileInputRef}
-                    disabled={uploading}
-                    className="file-picker-input"
-                  />
+                <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label style={{ 
+                    cursor: 'pointer', 
+                    padding: '8px 12px', 
+                    background: '#374151', 
+                    borderRadius: '4px', 
+                    fontSize: '14px',
+                    border: '1px solid #4b5563',
+                    display: 'inline-block'
+                  }}>
+                    Choose Folder
+                    <input 
+                      type="file" 
+                      webkitdirectory="true" 
+                      directory="true" 
+                      multiple 
+                      ref={fileInputRef}
+                      disabled={uploading}
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const count = e.target.files?.length || 0;
+                        const el = document.getElementById('file-count-label');
+                        if (el) el.innerText = count > 0 ? `${count} files selected` : '';
+                      }}
+                    />
+                  </label>
+                  <span id="file-count-label" style={{ fontSize: '12px', color: '#9ca3af' }}></span>
                 </div>
 
                 <button 
