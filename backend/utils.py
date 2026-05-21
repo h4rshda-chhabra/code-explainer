@@ -7,17 +7,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger("devops-assistant")
 
-def get_allowed_files(directory: str):
-    allowed_extensions = {
-        '.py', '.js', '.jsx', '.ts', '.tsx', 
-        '.sh', '.yml', '.yaml', '.json', 
-        '.html', '.css', '.md', '.txt', 
-        '.java', '.cpp', '.c', '.go', '.rs', '.sql',
-        '.jsonl', '.toml', '.xml', '.props', '.properties', 
-        '.gradle', '.gradle.kts', '.pom', '.xml.config',
-        '.svg', '.config', '.env.example', '.dockerignore', 
-        '.gitignore', 'Dockerfile', 'dockerfile', 'Makefile', 'makefile'
-    }
+from typing import List, Optional
+
+def get_allowed_files(directory: str, allowed_extensions: Optional[List[str]] = None):
+    if not allowed_extensions:
+        allowed_extensions = {
+            '.py', '.js', '.jsx', '.ts', '.tsx', 
+            '.sh', '.yml', '.yaml', '.json', 
+            '.html', '.css', '.md', '.txt', 
+            '.java', '.cpp', '.c', '.go', '.rs', '.sql',
+            '.jsonl', '.toml', '.xml', '.props', '.properties', 
+            '.gradle', '.gradle.kts', '.pom', '.xml.config',
+            '.svg', '.config', '.env.example', '.dockerignore', 
+            '.gitignore', 'Dockerfile', 'dockerfile', 'Makefile', 'makefile'
+        }
+    else:
+        allowed_extensions = {ext.lower() for ext in allowed_extensions}
     
     # Exclude common large/build directories that shouldn't be indexed
     excluded_dirs = {

@@ -1,5 +1,6 @@
 import os
 from typing import List, Dict, Any
+# pyrefly: ignore [missing-import]
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from .utils import get_allowed_files
 class FileProcessor:
@@ -53,10 +54,9 @@ class FileProcessor:
             
         return chunks
 
-    def process_directory(self, directory_path: str) -> List[Dict[str, Any]]:
-        from .utils import get_allowed_files
+    def process_directory(self, directory_path: str, allowed_extensions: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         all_chunks = []
-        files = list(set(get_allowed_files(directory_path)))
+        files = list(set(get_allowed_files(directory_path, allowed_extensions)))
         
         print(f"Index engine starting: found {len(files)} potential code/config files.")
         

@@ -3,6 +3,7 @@ from typing import List, Optional
 
 class UploadRequest(BaseModel):
     files: List[str]  # List of file paths or directory
+    allowed_extensions: Optional[List[str]] = None
 
 class GithubUploadRequest(BaseModel):
     github_url: str

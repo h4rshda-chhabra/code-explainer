@@ -44,9 +44,6 @@ function App() {
     fetchIndexStatus();
   }, []);
 
-  const handleUploadLocal = async (e) => {
-    e.preventDefault();
-    if (!uploadPaths.trim()) return;
   const fileInputRef = useRef(null);
 
   const handleUploadLocal = async (e) => {

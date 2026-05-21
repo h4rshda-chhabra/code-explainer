@@ -4,6 +4,7 @@ import stat
 import tempfile
 from typing import List
 
+# pyrefly: ignore [missing-import]
 from git import Repo
 
 def handle_remove_readonly(func, path, exc_info):

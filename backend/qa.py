@@ -3,6 +3,7 @@ from typing import List
 
 class QAEngine:
     def __init__(self, api_key: str = None, model: str = "gemini-2.5-flash"):
+        # pyrefly: ignore [missing-import]
         from google import genai
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
         self.model = model
@@ -13,6 +14,7 @@ class QAEngine:
 Use the codebase context provided below to answer the user's question accurately.
 If the context doesn't contain the exact answer but gives enough structural clues, synthesize a helpful explanation based on standard software engineering principles.
 If it is completely unrelated to the provided context, state that there is 'Not enough information in the indexed codebase.'
+Do NOT generate diagrams, flowcharts, or visual representations for now.
 
 Context:
 {context_text}
