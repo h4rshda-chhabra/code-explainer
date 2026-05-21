@@ -4,7 +4,7 @@ import { Send, UploadCloud, Folder, FileCode2, Command, Bot, User, CheckCircle2,
 import ReactMarkdown from 'react-markdown';
 import './App.css';
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '/api';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://codesense-backend-a472.onrender.com';
 
 function App() {
   const [messages, setMessages] = useState([
@@ -13,7 +13,7 @@ function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadMode, setUploadMode] = useState('local'); // 'local' or 'github'
-  const [uploadPaths, setUploadPaths] = useState('');
+
   const [githubUrl, setGithubUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null); // { type: 'success' | 'error', message: '' }
@@ -47,29 +47,65 @@ function App() {
   const handleUploadLocal = async (e) => {
     e.preventDefault();
     if (!uploadPaths.trim()) return;
+  const fileInputRef = useRef(null);
+
+  const handleUploadLocal = async (e) => {
+    e.preventDefault();
+    const files = fileInputRef.current?.files;
+    if (!files || files.length === 0) return;
     
     setUploading(true);
     setUploadStatus(null);
     
-    // Split by comma and clean up whitespace
-    const paths = uploadPaths.split(',').map(p => p.trim()).filter(Boolean);
-    
     try {
-      const exts = allowedExtensions.split(',').map(e => e.trim()).filter(Boolean);
-      const res = await axios.post(`${API_BASE}/upload`, { 
-        files: paths,
-        allowed_extensions: exts.length > 0 ? exts : null
+      const formData = new FormData();
+      let fileCount = 0;
+      
+      const exts = allowedExtensions.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const path = file.webkitRelativePath || file.name;
+        
+        // Exclude common heavy directories to save upload bandwidth
+        if (path.includes('.git/') || path.includes('node_modules/') || path.includes('__pycache__/')) {
+          continue;
+        }
+
+        // Filter by extensions if provided
+        if (exts.length > 0) {
+          const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+          if (!exts.includes(fileExt)) {
+            continue;
+          }
+        }
+
+        formData.append('files', file);
+        formData.append('paths', path);
+        fileCount++;
+      }
+
+      if (fileCount === 0) {
+        throw new Error("No valid files found after filtering.");
+      }
+
+      const res = await axios.post(`${API_BASE}/upload-local`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
+      
       setUploadStatus({ 
         type: 'success', 
         message: `Indexed ${res.data.files_indexed} local files!` 
       });
-      setUploadPaths('');
+      
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      
       fetchIndexStatus();
     } catch (err) {
       setUploadStatus({ 
         type: 'error', 
-        message: err.response?.data?.detail || err.message || 'Failed to index files.' 
+        message: err.response?.data?.detail || err.message || 'Failed to upload and index files.' 
       });
     } finally {
       setUploading(false);
@@ -103,19 +139,7 @@ function App() {
     }
   };
 
-  const handleBrowseLocal = async () => {
-    try {
-      // Call the backend endpoint to spawn a native OS folder picker
-      // This brilliantly bypasses the browser's absolute path security restriction
-      const res = await axios.get(`${API_BASE}/browse`);
-      if (res.data.path) {
-        setUploadPaths(prev => prev ? prev + ', ' + res.data.path : res.data.path);
-      }
-    } catch (error) {
-       console.log("Folder picker error or cancelled", error);
-       alert("Failed to open local folder browser. Make sure the backend server is running.");
-    }
-  };
+
 
   const handleUnindex = async () => {
     if (!window.confirm("Are you sure you want to unindex the current codebase? This guarantees no two codebases will merge.")) return;
@@ -191,34 +215,33 @@ function App() {
 
           {uploadMode === 'local' ? (
             <div className="tab-pane">
-              <p className="upload-desc">Enter absolute paths to your project folders (comma separated).</p>
+              <p className="upload-desc">Select a project folder to upload and index its code.</p>
               <form onSubmit={handleUploadLocal}>
-                <div className="input-with-browser">
-                  <textarea 
-                    value={uploadPaths}
-                    onChange={(e) => setUploadPaths(e.target.value)}
-                    placeholder="e.g. C:\Projects\MyRepo"
-                    rows={3}
+                <div style={{ marginBottom: '12px' }}>
+                  <input 
+                    type="file" 
+                    webkitdirectory="true" 
+                    directory="true" 
+                    multiple 
+                    ref={fileInputRef}
                     disabled={uploading}
+                    className="file-picker-input"
                   />
-                  <button type="button" onClick={handleBrowseLocal} className="browse-btn" disabled={uploading} title="Browse Folders">
-                    <Folder size={16} />
-                  </button>
                 </div>
                 <input 
                   type="text"
                   value={allowedExtensions}
                   onChange={(e) => setAllowedExtensions(e.target.value)}
                   placeholder="Extensions: .py, .js (optional)"
-                  style={{ background: '#374151', color: '#f3f4f6', border: '1px solid #4b5563', padding: '8px', borderRadius: '4px', width: '100%', marginTop: '8px', marginBottom: '8px' }}
+                  style={{ background: '#374151', color: '#f3f4f6', border: '1px solid #4b5563', padding: '8px', borderRadius: '4px', width: '100%', marginBottom: '8px' }}
                 />
                 <button 
                   type="submit" 
                   className={`upload-btn ${uploading ? 'loading' : ''}`}
-                  disabled={uploading || !uploadPaths.trim()}
+                  disabled={uploading}
                 >
                   {uploading ? <div className="spinner-small" /> : <UploadCloud size={18} />}
-                  <span>{uploading ? 'Indexing...' : 'Index Local Files'}</span>
+                  <span>{uploading ? 'Uploading & Indexing...' : 'Upload Local Folder'}</span>
                 </button>
               </form>
             </div>
