@@ -1,4 +1,4 @@
-# AI-Powered DevOps Codebase Assistant (RAG)
+# AI-Powered Codebase Assistant (RAG)
 
 An AI-powered tool that explains source code and DevOps configuration files using Retrieval-Augmented Generation (RAG). It splits files into chunks, indexes them in a FAISS vector store, and uses an LLM to answer questions based only on the retrieved context.
 
@@ -49,6 +49,9 @@ An AI-powered tool that explains source code and DevOps configuration files usin
   - Body: `{"question": "How does the ingestion logic work?"}`
 - **GET `/health`**: Check system status.
 
+###WORKING LINK:
+https://etech.vercel.app/app
+
 ## Project Structure
 ```
 backend/
@@ -61,5 +64,4 @@ backend/
 requirements.txt
 README.md
 
-Working Link: https://etech.vercel.app/app
 ```
