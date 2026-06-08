@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Dict, Any
 import json
 import os
+import time
 from google import genai
 
 class VectorStoreManager:
@@ -51,25 +52,48 @@ class VectorStoreManager:
         with open(self.meta_path, 'w', encoding='utf-8') as f:
             json.dump({"repo_name": self.repo_name}, f)
 
+    def _embed_with_retry(self, texts: List[str], max_retries: int = 5):
+        """Call the Gemini embedding API with automatic retry + exponential backoff on 429 errors."""
+        for attempt in range(max_retries):
+            try:
+                res = self.client.models.embed_content(
+                    model=self.model_name,
+                    contents=texts
+                )
+                return res
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    wait_time = min(2 ** attempt * 5, 60)  # 5s, 10s, 20s, 40s, 60s
+                    print(f"Rate limited (attempt {attempt + 1}/{max_retries}). Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                else:
+                    raise  # Re-raise non-rate-limit errors immediately
+        raise Exception("Gemini embedding API rate limit exceeded after maximum retries. Please wait a few minutes and try again.")
+
     def add_chunks(self, chunks: List[Dict[str, Any]], repo_name: str = "Local Files"):
         if not chunks:
             return
         self.repo_name = repo_name
         
-        # Batch processing embeddings via Gemini API
-        batch_size = 90 # Gemini API limit is around 100 for batch embedding
+        # Use smaller batches + delay to stay within free-tier rate limits
+        batch_size = 20
+        total_batches = (len(chunks) + batch_size - 1) // batch_size
         for i in range(0, len(chunks), batch_size):
             batch = chunks[i:i+batch_size]
+            batch_num = i // batch_size + 1
             texts = [c["text"] for c in batch]
             
-            res = self.client.models.embed_content(
-                model=self.model_name,
-                contents=texts
-            )
+            print(f"Embedding batch {batch_num}/{total_batches} ({len(texts)} chunks)...")
+            res = self._embed_with_retry(texts)
             embeddings = np.array([e.values for e in res.embeddings]).astype('float32')
             
             self.index.add(embeddings)
             self.chunks.extend(batch)
+            
+            # Throttle between batches to avoid hitting rate limits
+            if i + batch_size < len(chunks):
+                time.sleep(2)
             
         self.save()
 
