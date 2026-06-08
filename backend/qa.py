@@ -2,7 +2,7 @@ import os
 from typing import List
 
 class QAEngine:
-    def __init__(self, api_key: str = None, model: str = "gemini-2.5-flash"):
+    def __init__(self, api_key: str = None, model: str = "gemini-1.5-flash"):
         # pyrefly: ignore [missing-import]
         from google import genai
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
