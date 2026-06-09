@@ -1,3 +1,5 @@
+"""GitHub Ingestor — Clones public repositories for code indexing."""
+
 import os
 import shutil
 import stat
@@ -7,54 +9,57 @@ from typing import List
 # pyrefly: ignore [missing-import]
 from git import Repo
 
-def handle_remove_readonly(func, path, exc_info):
-    """Error handler for shutil.rmtree to safely remove read-only files on Windows."""
+
+def _handle_remove_readonly(func, path, exc_info):
+    """Error handler for shutil.rmtree to remove read-only files on Windows."""
     if not os.access(path, os.W_OK):
         os.chmod(path, stat.S_IWUSR)
         func(path)
     else:
         raise
 
+
 class GitHubIngestor:
+    """Clones public GitHub repos into temporary directories for processing."""
+
     def __init__(self) -> None:
-        """Initialize the GitHub ingestor to track temporary cloned directories."""
         self.cloned_dirs: List[str] = []
 
     def clone_repo(self, repo_url: str) -> str:
-        """Clones a GitHub repository to a temporary directory for processing."""
+        """Clone a GitHub repository (shallow) and return the temp directory path."""
         temp_dir = tempfile.mkdtemp(prefix="codesense_")
         self.cloned_dirs.append(temp_dir)
-        
+
         print(f"Cloning {repo_url} into {temp_dir}...")
         try:
-            # depth=1 performs a shallow clone, which is significantly faster and saves local disk space
             Repo.clone_from(repo_url, temp_dir, depth=1)
-            
-            # Immediately delete the .git folder to save space and skip indexing unnecessary git histories
+
+            # Remove .git folder to save space and avoid indexing git internals
             git_dir = os.path.join(temp_dir, ".git")
             if os.path.exists(git_dir):
                 self.cleanup_dir(git_dir)
-                
+
             return temp_dir
         except Exception as e:
             self.cleanup_dir(temp_dir)
             error_msg = str(e).lower()
-            
-            # Check for common git errors when trying to clone a private or non-existent repo without auth
-            if "not found" in error_msg or "authentication" in error_msg or "could not read" in error_msg or "fatal: repository" in error_msg:
-                raise RuntimeError("Cannot access repository. Please ensure the URL is correct and the repository is public (private repositories are not currently supported).")
-                
-            raise RuntimeError(f"Failed to clone repository: {str(e)}")
+
+            if any(kw in error_msg for kw in ("not found", "authentication", "could not read", "fatal: repository")):
+                raise RuntimeError(
+                    "Cannot access repository. Ensure the URL is correct "
+                    "and the repository is public (private repos are not supported)."
+                )
+            raise RuntimeError(f"Failed to clone repository: {e}")
 
     def cleanup_dir(self, dir_path: str) -> None:
-        """Safely deletes a temporary directory."""
+        """Safely delete a directory, handling read-only files on Windows."""
         try:
             if os.path.exists(dir_path):
-                shutil.rmtree(dir_path, onerror=handle_remove_readonly)
+                shutil.rmtree(dir_path, onerror=_handle_remove_readonly)
         except Exception as e:
             print(f"Warning: Failed to cleanup {dir_path}: {e}")
 
     def __del__(self) -> None:
-        """Ensure all stored cloned repositories are deleted when object is garbage collected."""
+        """Clean up all cloned directories on garbage collection."""
         for directory in self.cloned_dirs:
             self.cleanup_dir(directory)
