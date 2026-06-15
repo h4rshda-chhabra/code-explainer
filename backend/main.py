@@ -31,8 +31,8 @@ from .vector_store import VectorStoreManager
 # Local imports for DB, auth, and middleware
 from .database import get_db, engine, Base
 from .models_orm import Repository, Conversation, Message, Report, Analytics
-from .auth import get_current_user
-from .models_orm import User
+from .auth import get_current_user, verify_password, get_password_hash, create_session, LoginRequest
+from .models_orm import User, Session as DbSessionModel
 from .middleware import RequestIDMiddleware, ErrorHandlingMiddleware
 
 load_dotenv()
@@ -85,6 +85,65 @@ github_ingestor = GitHubIngestor()
 
 # Groq for LLM (Q&A), Gemini still used for embeddings in vector_store
 qa_engine = QAEngine(api_key=os.getenv("GROQ_API_KEY"))
+
+# ── Auth Endpoints ────────────────────────────────────────────────────────
+
+@app.post("/register")
+def register(request: LoginRequest, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.username == request.username).first():
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    hashed_pwd = get_password_hash(request.password)
+    user = User(username=request.username, password_hash=hashed_pwd)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    session = create_session(db, user.id)
+    response = JSONResponse(content={"message": "Registered successfully", "user_id": user.id})
+    response.set_cookie(
+        key="session_id", 
+        value=session.id, 
+        httponly=True, 
+        secure=os.getenv("ENV") == "production",
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60
+    )
+    return response
+
+@app.post("/login")
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == request.username).first()
+    if not user or not verify_password(request.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    session = create_session(db, user.id)
+    response = JSONResponse(content={"message": "Logged in successfully", "user_id": user.id})
+    response.set_cookie(
+        key="session_id", 
+        value=session.id, 
+        httponly=True, 
+        secure=os.getenv("ENV") == "production",
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60
+    )
+    return response
+
+@app.post("/logout")
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    session_id = request.cookies.get("session_id")
+    if session_id:
+        session_record = db.query(DbSessionModel).filter(DbSessionModel.id == session_id).first()
+        if session_record:
+            db.delete(session_record)
+            db.commit()
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    response.delete_cookie("session_id")
+    return response
+
+@app.get("/me")
+def get_me(user: dict = Depends(get_current_user)):
+    return {"user_id": user["user_id"], "username": user["username"]}
 
 # ── Endpoints ─────────────────────────────────────────────────────────
 

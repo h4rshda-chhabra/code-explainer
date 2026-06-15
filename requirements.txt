@@ -10,3 +10,5 @@ numpy
 gitpython
 langchain-text-splitters
 python-dotenv
+passlib
+bcrypt
