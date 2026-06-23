@@ -1,10 +1,9 @@
-# Ignore backend files — Vercel only builds the frontend
+# Ignore backend-only files so Vercel doesn't try to parse them
 backend/
-requirements.txt
-Dockerfile
 render.yaml
+Dockerfile
 *.log
 *.faiss
-*.json
-!frontend/
-!vercel.json
+index.faiss
+chunks.json
+meta.json
