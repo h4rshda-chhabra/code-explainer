@@ -26,6 +26,7 @@ class QueryRequest(BaseModel):
     """Request to ask a question about the indexed codebase."""
     question: str
     top_k: Optional[int] = 3
+    conversation_id: Optional[int] = None
 
 
 class QueryResponse(BaseModel):

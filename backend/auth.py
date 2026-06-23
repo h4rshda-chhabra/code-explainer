@@ -3,26 +3,23 @@
 import os
 from datetime import datetime, timedelta
 import secrets
+import bcrypt
 from fastapi import Request, HTTPException, status, Depends
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session as DbSession
 from pydantic import BaseModel
 
 from .database import get_db
 from .models_orm import User, Session
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 class LoginRequest(BaseModel):
     username: str
     password: str
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def create_session(db: DbSession, user_id: int, days: int = 7) -> Session:
     """Create a new session in the database for the user."""

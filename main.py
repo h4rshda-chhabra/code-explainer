@@ -4,4 +4,4 @@ from backend.main import app
 # that look for a 'main.py' or 'app' instance in the root directory.
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="::", port=8000)

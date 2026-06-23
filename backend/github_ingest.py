@@ -1,17 +1,18 @@
-"""GitHub Ingestor — Clones public repositories for code indexing."""
+"""GitHub Ingestor — Downloads public repositories via GitHub API zipball for fast indexing."""
 
+import io
 import os
+import re
 import shutil
 import stat
 import tempfile
+import zipfile
 from typing import List
 
-# pyrefly: ignore [missing-import]
-from git import Repo
+import requests
 
 
 def _handle_remove_readonly(func, path, exc_info):
-    """Error handler for shutil.rmtree to remove read-only files on Windows."""
     if not os.access(path, os.W_OK):
         os.chmod(path, stat.S_IWUSR)
         func(path)
@@ -19,40 +20,79 @@ def _handle_remove_readonly(func, path, exc_info):
         raise
 
 
+def _parse_github_url(url: str):
+    """Extract (owner, repo) from a GitHub URL."""
+    url = url.rstrip("/").removesuffix(".git")
+    match = re.search(r"github\.com[/:]([^/]+)/([^/]+)", url)
+    if not match:
+        raise ValueError(f"Could not parse GitHub URL: {url}")
+    return match.group(1), match.group(2)
+
+
 class GitHubIngestor:
-    """Clones public GitHub repos into temporary directories for processing."""
+    """Downloads public GitHub repos as zip archives for fast code indexing."""
 
     def __init__(self) -> None:
         self.cloned_dirs: List[str] = []
 
     def clone_repo(self, repo_url: str) -> str:
-        """Clone a GitHub repository (shallow) and return the temp directory path."""
+        """Download a GitHub repository as a zip and extract to a temp directory."""
+        try:
+            owner, repo = _parse_github_url(repo_url)
+        except ValueError as e:
+            raise RuntimeError(str(e))
+
+        token = os.getenv("GITHUB_TOKEN")
+        headers = {"Accept": "application/vnd.github+json"}
+        if token and token != "placeholder":
+            headers["Authorization"] = f"Bearer {token}"
+
+        zip_url = f"https://api.github.com/repos/{owner}/{repo}/zipball"
+        print(f"Downloading {owner}/{repo} via GitHub API...")
+
+        try:
+            resp = requests.get(zip_url, headers=headers, timeout=60, stream=True)
+        except requests.exceptions.Timeout:
+            raise RuntimeError("Download timed out. The repository may be too large.")
+        except requests.exceptions.ConnectionError as e:
+            raise RuntimeError(f"Network error: {e}")
+
+        if resp.status_code == 404:
+            raise RuntimeError("Repository not found. Check the URL or ensure it is public.")
+        if resp.status_code == 401:
+            raise RuntimeError("Authentication failed. Set a valid GITHUB_TOKEN for private repos.")
+        if resp.status_code != 200:
+            raise RuntimeError(f"GitHub API error {resp.status_code}.")
+
+        # Stream zip into memory then extract
+        zip_bytes = io.BytesIO(resp.content)
         temp_dir = tempfile.mkdtemp(prefix="codesense_")
         self.cloned_dirs.append(temp_dir)
 
-        print(f"Cloning {repo_url} into {temp_dir}...")
         try:
-            Repo.clone_from(repo_url, temp_dir, depth=1)
-
-            # Remove .git folder to save space and avoid indexing git internals
-            git_dir = os.path.join(temp_dir, ".git")
-            if os.path.exists(git_dir):
-                self.cleanup_dir(git_dir)
-
-            return temp_dir
-        except Exception as e:
+            with zipfile.ZipFile(zip_bytes) as zf:
+                # GitHub zips wrap everything in a top-level dir like owner-repo-sha/
+                names = zf.namelist()
+                prefix = names[0].split("/")[0] + "/" if names else ""
+                for member in names:
+                    # Strip the top-level prefix so files land directly in temp_dir
+                    rel = member[len(prefix):]
+                    if not rel:
+                        continue
+                    dest = os.path.join(temp_dir, rel)
+                    if member.endswith("/"):
+                        os.makedirs(dest, exist_ok=True)
+                    else:
+                        os.makedirs(os.path.dirname(dest), exist_ok=True)
+                        with zf.open(member) as src, open(dest, "wb") as dst:
+                            dst.write(src.read())
+        except zipfile.BadZipFile:
             self.cleanup_dir(temp_dir)
-            error_msg = str(e).lower()
+            raise RuntimeError("Downloaded file is not a valid zip archive.")
 
-            if any(kw in error_msg for kw in ("not found", "authentication", "could not read", "fatal: repository")):
-                raise RuntimeError(
-                    "Cannot access repository. Ensure the URL is correct "
-                    "and the repository is public (private repos are not supported)."
-                )
-            raise RuntimeError(f"Failed to clone repository: {e}")
+        return temp_dir
 
     def cleanup_dir(self, dir_path: str) -> None:
-        """Safely delete a directory, handling read-only files on Windows."""
         try:
             if os.path.exists(dir_path):
                 shutil.rmtree(dir_path, onerror=_handle_remove_readonly)
@@ -60,6 +100,5 @@ class GitHubIngestor:
             print(f"Warning: Failed to cleanup {dir_path}: {e}")
 
     def __del__(self) -> None:
-        """Clean up all cloned directories on garbage collection."""
         for directory in self.cloned_dirs:
             self.cleanup_dir(directory)
