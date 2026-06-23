@@ -1,7 +1,11 @@
-# Ignore backend-only files so Vercel doesn't try to parse them
+# Ignore all backend/Python files — Vercel only builds the frontend
 backend/
-render.yaml
+requirements.txt
 Dockerfile
+render.yaml
+__pycache__/
+*.py
+*.pyc
 *.log
 *.faiss
 index.faiss
