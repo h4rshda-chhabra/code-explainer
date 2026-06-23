@@ -1,0 +1,10 @@
+# Ignore backend files — Vercel only builds the frontend
+backend/
+requirements.txt
+Dockerfile
+render.yaml
+*.log
+*.faiss
+*.json
+!frontend/
+!vercel.json
