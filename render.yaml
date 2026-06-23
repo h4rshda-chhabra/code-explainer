@@ -1,15 +1,18 @@
 services:
   - type: web
     name: codesense-backend
-    env: python
+    env: docker
     plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ENV
+        value: production
       - key: ALLOWED_ORIGINS
         value: "https://etech.vercel.app,https://etech-73rk6prq7-harshdachhabra28-5581s-projects.vercel.app"
     autoDeploy: true

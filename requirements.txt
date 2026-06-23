@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 faiss-cpu
 google-genai
 groq
@@ -10,5 +10,8 @@ numpy
 gitpython
 langchain-text-splitters
 python-dotenv
-passlib
+passlib[bcrypt]
 bcrypt
+sqlalchemy
+psycopg2-binary
+requests
