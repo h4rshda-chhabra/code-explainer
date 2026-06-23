@@ -45,12 +45,14 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 320px;
+  width: 300px;
+  min-width: 300px;
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 1.5rem 1.5rem 0.75rem;
+  padding: 1.25rem;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -71,7 +73,7 @@ body {
 }
 
 .upload-section {
-  flex: 1;
+  flex: 0 0 auto;
 }
 
 .upload-section h3 {
@@ -267,10 +269,11 @@ form textarea:focus {
 }
 
 .chat-header {
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .header-info {
@@ -626,4 +629,16 @@ form textarea:focus {
   font-size: 0.8rem;
   padding: 1rem 0;
   font-style: italic;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.sidebar-footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
 }
