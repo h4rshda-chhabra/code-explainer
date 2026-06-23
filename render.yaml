@@ -14,5 +14,5 @@ services:
       - key: ENV
         value: production
       - key: ALLOWED_ORIGINS
-        value: "https://etech.vercel.app,https://etech-73rk6prq7-harshdachhabra28-5581s-projects.vercel.app"
+        value: "https://code-explainer-murex.vercel.app,https://etech.vercel.app"
     autoDeploy: true
