@@ -51,7 +51,13 @@ const Landing = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400"
+          className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6"
+          style={{
+            backgroundImage: 'linear-gradient(to bottom, #ffffff, #9ca3af)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
         >
           CodeSense AI
         </motion.h1>
