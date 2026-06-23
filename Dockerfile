@@ -11,9 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Copy and install Python dependencies first (layer cache)
+# Install CPU-only PyTorch first (smaller, faster) before other deps
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Copy and install remaining Python dependencies (layer cache)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN grep -v "^torch" requirements.txt | pip install --no-cache-dir -r /dev/stdin
 
 # Copy the full project
 COPY . .

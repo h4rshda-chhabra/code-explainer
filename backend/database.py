@@ -17,6 +17,10 @@ if not DATABASE_URL:
         "postgresql://user:password@localhost/codesense"
     )
 
+# Render (and some other hosts) provide postgres:// but SQLAlchemy 2.x requires postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Create engine with future flag for 2.0 style
 engine = create_engine(DATABASE_URL, future=True, echo=False)
 

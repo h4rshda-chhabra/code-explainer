@@ -15,3 +15,5 @@ bcrypt
 sqlalchemy
 psycopg2-binary
 requests
+sentence-transformers
+torch --index-url https://download.pytorch.org/whl/cpu
