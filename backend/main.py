@@ -107,8 +107,8 @@ def register(request: LoginRequest, db: Session = Depends(get_db)):
         key="session_id", 
         value=session.id, 
         httponly=True, 
-        secure=os.getenv("ENV") == "production",
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=7 * 24 * 60 * 60
     )
     return response
@@ -125,8 +125,8 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         key="session_id", 
         value=session.id, 
         httponly=True, 
-        secure=os.getenv("ENV") == "production",
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=7 * 24 * 60 * 60
     )
     return response
