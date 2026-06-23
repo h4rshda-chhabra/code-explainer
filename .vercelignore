@@ -1,8 +1,10 @@
 # Ignore all backend/Python files — Vercel only builds the frontend
 backend/
+api/
 requirements.txt
 Dockerfile
 render.yaml
+main.py
 __pycache__/
 *.py
 *.pyc
