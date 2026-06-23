@@ -1,4 +1,9 @@
-/* Base reset – App.css handles all design tokens */
+/* Tailwind utilities only — base (Preflight) is intentionally excluded
+   to avoid conflicts with App.css which manages its own design tokens.    */
+@tailwind components;
+@tailwind utilities;
+
+/* Base reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
