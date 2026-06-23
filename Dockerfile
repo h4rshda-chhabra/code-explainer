@@ -15,7 +15,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # Copy and install remaining Python dependencies (layer cache)
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN grep -v "^torch" requirements.txt | pip install --no-cache-dir -r /dev/stdin
 
 # Copy the full project
